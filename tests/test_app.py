@@ -2,6 +2,9 @@ from http import HTTPStatus
 
 from fastapi.testclient import TestClient
 
+from fast_api.models import User
+from fast_api.schemas import UserPublic
+
 
 def test_root_deve_retornar_ok_e_ola_mundo(client: TestClient):
     response = client.get("/")
@@ -46,23 +49,55 @@ def test_create_user(client: TestClient):
     }
 
 
+def test_create_user_fail_with_duplicate_email(client: TestClient, user: User):
+    user_schema = UserPublic.model_validate(user).model_dump()
+    user_schema["password"] = "testpassword"
+    user_schema["username"] = "valid_name"
+    response = client.post("/users/", json=user_schema)
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()["detail"] == "Email already exists."
+
+
+def test_create_user_fail_with_duplicate_username(
+    client: TestClient, user: User
+):
+    user_schema = UserPublic.model_validate(user).model_dump()
+    user_schema["password"] = "testpassword"
+    user_schema["email"] = "valid@email.com"
+    response = client.post("/users/", json=user_schema)
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()["detail"] == "Username already exists."
+
+
+def test_read_user_by_id(client: TestClient, user: User):
+    user_schema = UserPublic.model_validate(user).model_dump()
+    response = client.get(f"/users/{user.id}")
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == user_schema
+
+
+def test_read_user_by_id_fail(client: TestClient):
+    response = client.get("/users/1")
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json()["detail"] == "User not found"
+
+
 def test_read_users(client: TestClient):
     response = client.get("/users")
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {
-        "users": [
-            {
-                "username": "testusername",
-                "email": "test@test.com",
-                "id": 1,
-            }
-        ]
-    }
+    assert response.json() == {"users": []}
 
 
-def test_update_user(client: TestClient):
+def test_read_users_with_user(client: TestClient, user: User):
+    user_schema = UserPublic.model_validate(user).model_dump()
+    response = client.get("/users")
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {"users": [user_schema]}
+
+
+def test_update_user(client: TestClient, user: User):
     response = client.put(
-        "/users/1",
+        f"/users/{user.id}",
         json={
             "username": "bob",
             "email": "bob@example.com",
@@ -91,7 +126,7 @@ def test_update_user_fail(client: TestClient):
     assert response.json()["detail"] == "User not found"
 
 
-def test_delete_user(client: TestClient):
+def test_delete_user(client: TestClient, user: User):
     response = client.delete("/users/1")
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"message": "User deleted"}

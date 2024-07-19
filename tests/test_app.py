@@ -95,7 +95,7 @@ def test_read_users_with_user(client: TestClient, user: User):
     assert response.json() == {"users": [user_schema]}
 
 
-def test_update_user(client: TestClient, user: User):
+def test_update_user(client: TestClient, user: User, token):
     response = client.put(
         f"/users/{user.id}",
         json={
@@ -103,6 +103,7 @@ def test_update_user(client: TestClient, user: User):
             "email": "bob@example.com",
             "password": "mynewpassword",
         },
+        headers={"Authorization": f'Bearer {token['access_token']}'},
     )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
@@ -112,27 +113,62 @@ def test_update_user(client: TestClient, user: User):
     }
 
 
-def test_update_user_fail(client: TestClient):
+def test_update_user_fail(client: TestClient, user: User, token):
     response = client.put(
-        "users/0",
+        f"users/{user.id + 1}",
         json={
             "username": "bob",
             "email": "bob@example.com",
             "password": "mynewpassword",
         },
+        headers={"Authorization": f'Bearer {token['access_token']}'},
     )
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()["detail"] == "Not enough permission"
 
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json()["detail"] == "User not found"
 
-
-def test_delete_user(client: TestClient, user: User):
-    response = client.delete("/users/1")
+def test_delete_user(client: TestClient, user: User, token):
+    response = client.delete(
+        "/users/1",
+        headers={"Authorization": f'Bearer {token['access_token']}'},
+    )
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {"message": "User deleted"}
 
 
-def test_delete_user_fail(client: TestClient):
-    response = client.delete("/users/1")
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json()["detail"] == "User not found"
+def test_delete_user_fail(client: TestClient, user: User, token):
+    response = client.delete(
+        f"/users/{user.id + 1}",
+        headers={"Authorization": f'Bearer {token['access_token']}'},
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()["detail"] == "Not enough permission"
+
+
+def test_get_token(client: TestClient, user: User):
+    response = client.post(
+        "/token",
+        data={"username": user.email, "password": user.clean_password},
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert response.json()["token_type"] == "Bearer"
+    assert "access_token" in response.json()
+
+
+def test_login(client: TestClient, user: User):
+    response = client.post(
+        "/token",
+        data={"username": user.email, "password": user.clean_password},
+    )
+    assert response.status_code == HTTPStatus.OK
+    assert "access_token" in response.json()
+    assert response.json()["token_type"] == "Bearer"
+
+
+def test_login_fail(client: TestClient, user: User):
+    response = client.post(
+        "/token",
+        data={"username": user.email, "password": "incorrect_password"},
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json()["detail"] == "Incorrect username or passwod"

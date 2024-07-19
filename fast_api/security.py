@@ -53,14 +53,14 @@ def get_current_user(
     try:
         payload = decode(token, key=SECRET_KEY, algorithms=[ALGORITHM])
         username: str = payload.get("sub")
-        if not username:  # pragma: no cover
+        if not username:  
             raise credentials_exception
-    except PyJWTError:  # pragma: no cover
+    except PyJWTError: 
         raise credentials_exception
 
     user = session.scalar(select(User).where(User.email == username))
 
-    if not user:  # pragma: no cover
+    if not user:  
         raise credentials_exception
 
     return user

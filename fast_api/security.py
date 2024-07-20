@@ -12,12 +12,11 @@ from zoneinfo import ZoneInfo
 
 from fast_api.database import get_session
 from fast_api.models import User
+from fast_api.settings import Settings
 
 pwd_context = PasswordHash.recommended()
-
-SECRET_KEY = "your-secret-key"
-ALGORITHM = "HS256"
-ACESS_TOKEN_EXPIRE_MINUTES = 30
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
+settings = Settings()
 
 
 def get_password_hash(password: str) -> str:
@@ -31,36 +30,37 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 def create_access_token(data: dict):
     to_encode = data.copy()
     expire = datetime.now(tz=ZoneInfo("UTC")) + timedelta(
-        minutes=ACESS_TOKEN_EXPIRE_MINUTES
+        minutes=settings.ACESS_TOKEN_EXPIRE_MINUTES
     )
     to_encode.update({"exp": expire})
-    encoded_jwt = encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    encoded_jwt = encode(
+        to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM
+    )
     return encoded_jwt
-
-
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 
 def get_current_user(
     session: Session = Depends(get_session),
     token: str = Depends(oauth2_scheme),
-):
+) -> User:
     credentials_exception = HTTPException(
         status_code=HTTPStatus.UNAUTHORIZED,
         detail="Could not validade credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
-        payload = decode(token, key=SECRET_KEY, algorithms=[ALGORITHM])
+        payload = decode(
+            token, key=settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
+        )
         username: str = payload.get("sub")
-        if not username:  
+        if not username:
             raise credentials_exception
-    except PyJWTError: 
+    except PyJWTError:
         raise credentials_exception
 
     user = session.scalar(select(User).where(User.email == username))
 
-    if not user:  
+    if not user:
         raise credentials_exception
 
     return user

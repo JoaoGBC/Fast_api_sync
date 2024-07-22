@@ -57,10 +57,12 @@ def test_read_user_by_id_fail(client: TestClient):
     assert response.json()["detail"] == "User not found"
 
 
-def test_read_users(client: TestClient):
+def test_read_users(client: TestClient, user: User, other_user: User):
+    user_schema = UserPublic.model_validate(user).model_dump()
+    other_user_schema = UserPublic.model_validate(other_user).model_dump()
     response = client.get("/users")
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"users": []}
+    assert response.json() == {"users": [user_schema, other_user_schema]}
 
 
 def test_read_users_with_user(client: TestClient, user: User):
@@ -88,9 +90,9 @@ def test_update_user(client: TestClient, user: User, token):
     }
 
 
-def test_update_wrong_user(client: TestClient, user: User, token):
+def test_update_wrong_user(client: TestClient, other_user: User, token):
     response = client.put(
-        f"users/{user.id + 1}",
+        f"users/{other_user.id}",
         json={
             "username": "bob",
             "email": "bob@example.com",
@@ -111,9 +113,9 @@ def test_delete_user(client: TestClient, user: User, token):
     assert response.json() == {"message": "User deleted"}
 
 
-def test_delete_wrong_user(client: TestClient, user: User, token):
+def test_delete_wrong_user(client: TestClient, other_user: User, token):
     response = client.delete(
-        f"/users/{user.id + 1}",
+        f"/users/{other_user.id}",
         headers={"Authorization": f'Bearer {token['access_token']}'},
     )
     assert response.status_code == HTTPStatus.FORBIDDEN

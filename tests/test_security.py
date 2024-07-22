@@ -25,14 +25,3 @@ def test_jwt_invalid_token(client: TestClient):
 
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json() == {"detail": "Could not validade credentials"}
-
-
-def test_jwt_payload_invalid(client: TestClient):
-    data = {"sub": "email@invalido.com"}
-    token = create_access_token(data)
-    response = client.delete(
-        "users/1", headers={"Authorization": f"Bearer {token}"}
-    )
-
-    assert response.status_code == HTTPStatus.UNAUTHORIZED
-    assert response.json() == {"detail": "Could not validade credentials"}

@@ -25,3 +25,5 @@ def test_jwt_invalid_token(client: TestClient):
 
     assert response.status_code == HTTPStatus.UNAUTHORIZED
     assert response.json() == {"detail": "Could not validade credentials"}
+
+

@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 
 from sqlalchemy import ForeignKey, func
-from sqlalchemy.orm import Mapped, mapped_column, registry
+from sqlalchemy.orm import Mapped, mapped_column, registry, relationship
 
 table_registry = registry()
 
@@ -29,6 +29,9 @@ class User:
     updated_at: Mapped[datetime] = mapped_column(
         init=False, onupdate=func.now(), nullable=True
     )
+    todos: Mapped[list['Todo']] = relationship(
+        init=False, back_populates='user', cascade='all, delete-orphan'
+    )
 
 
 @table_registry.mapped_as_dataclass
@@ -45,3 +48,4 @@ class Todo:
     updated_at: Mapped[datetime] = mapped_column(
         init=False, onupdate=func.now(), nullable=True
     )
+    user: Mapped[User] = relationship(init=False, back_populates='todos')

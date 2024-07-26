@@ -4,14 +4,14 @@ from fastapi.testclient import TestClient
 
 
 def test_root_deve_retornar_ok_e_ola_mundo(client: TestClient):
-    response = client.get("/")
+    response = client.get('/')
 
     assert response.status_code == HTTPStatus.OK
-    assert response.json() == {"message": "Olá Mundo!"}
+    assert response.json() == {'message': 'Olá Mundo!'}
 
 
 def test_ola_mundo_deve_retornar_html(client: TestClient):
-    response = client.get("/ola_mundo")
+    response = client.get('/ola_mundo')
 
     html_content = """
     <!DOCTYPE html>

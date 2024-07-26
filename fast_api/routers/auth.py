@@ -15,13 +15,13 @@ from fast_api.security import (
     verify_password,
 )
 
-router = APIRouter(prefix="/auth", tags=["auth"])
+router = APIRouter(prefix='/auth', tags=['auth'])
 T_Session = Annotated[Session, Depends(get_session)]
 T_OAuthForm = Annotated[OAuth2PasswordRequestForm, Depends()]
 T_CurrentUser = Annotated[User, Depends(get_current_user)]
 
 
-@router.post("/token", response_model=Token)
+@router.post('/token', response_model=Token)
 def login_for_access_token(
     session: T_Session,
     form_data: T_OAuthForm,
@@ -32,13 +32,13 @@ def login_for_access_token(
     if not user or not verify_password(form_data.password, user.password):
         raise HTTPException(
             status_code=HTTPStatus.BAD_REQUEST,
-            detail="Incorrect username or passwod",
+            detail='Incorrect username or passwod',
         )
-    accessToken = create_access_token(data={"sub": user.email})
-    return {"access_token": accessToken, "token_type": "Bearer"}
+    accessToken = create_access_token(data={'sub': user.email})
+    return {'access_token': accessToken, 'token_type': 'Bearer'}
 
 
-@router.post("/refresh_token", response_model=Token)
+@router.post('/refresh_token', response_model=Token)
 def refresh_acess_token(user: T_CurrentUser):
-    new_access_token = create_access_token(data={"sub": user.email})
-    return {"access_token": new_access_token, "token_type": "Bearer"}
+    new_access_token = create_access_token(data={'sub': user.email})
+    return {'access_token': new_access_token, 'token_type': 'Bearer'}
